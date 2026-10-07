@@ -47,10 +47,10 @@ jobs:
     - name: terraform apply
       working-directory: codebase/rdicidr-0.1.0/terraform
       run: |
-        if [ "${GITHUB_REF_NAME}" = "devel"]; then
-           ENVIRONMENT ="devel"
-        elseif ["${GITHUB_REF_NAME}" = "stage"]; then
-            ENVIRONMENT ="stage"
+        if [ "${GITHUB_REF_NAME}" = "devel" ]; then
+           ENVIRONMENT="devel"
+        elif [ "${GITHUB_REF_NAME}" = "stage" ]; then
+            ENVIRONMENT="stage"
         else 
            echo "no supported branch"
         fi       
