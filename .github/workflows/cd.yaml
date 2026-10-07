@@ -1,0 +1,71 @@
+name: CD Pipeline
+
+on: 
+  pull_request:
+    branches:
+      - devel
+      - stage 
+
+env:
+  AWS_REGION: us-east-1      
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps: 
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '15'
+
+    - name: Install dependencies
+      working-directory: codebase/rdicidr-0.1.0
+      run: npm install
+
+    - name: Build project
+      working-directory: codebase/rdicidr-0.1.0
+      run: npm run build
+
+    - name: Configure credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         aws-region: ${{ env.AWS_REGION }}
+
+    - name: setup terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: terraform init
+      working-directory: codebase/rdicidr-0.1.0/terraform
+      run: terraform init 
+
+    - name: terraform apply
+      if: github.ref_name == 'devel' || github.ref_name == 'stage'
+      working-directory: codebase/rdicidr-0.1.0/terraform
+      run: |
+       ENVIRONMENT="${{ github.ref_name }}"
+    
+       terraform workspace select "$ENVIRONMENT" || terraform workspace new "$ENVIRONMENT"
+       terraform apply -auto-approve
+      
+
+    - name: upload code
+      working-directory: codebase/rdicidr-0.1.0/terraform
+      run: |
+        BUCKET=$(terraform output -raw app_bucket_name)
+
+        aws s3 sync ../build/ "s3://$BUCKET" --delete
+
+    - name: invalidate
+      working-directory: codebase/rdicidr-0.1.0/terraform
+      run:  |
+        DISTRIBUTION_ID=$(terraform output -raw cloudfront_distribution_id)     
+
+        aws cloudfront create-invalidation  \
+          --distribution-id "$DISTRIBUTION_ID"
+          --paths "/*"
