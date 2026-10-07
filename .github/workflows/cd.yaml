@@ -47,11 +47,19 @@ jobs:
     - name: terraform apply
       working-directory: codebase/rdicidr-0.1.0/terraform
       run: |
-        terraform workspace select -or-create "${GITHUB_REF_NAME}"
+        if [ "${GITHUB_REF_NAME}" = "devel"]; then
+           ENVIRONMENT ="devel"
+        elseif ["${GITHUB_REF_NAME}" = "stage"]; then
+            ENVIRONMENT ="stage"
+        else 
+           echo "no supported branch"
+        fi       
+        
+        terraform workspace select -or-create "${ENVIRONMENT}"
 
         terraform apply \
         -auto-approve \
-        -var="environment=${GITHUB_REF_NAME}" \
+        -var="environment=${ENVIRONMENT}" \
         -var="aws_region=${AWS_REGION}"        
 
     - name: upload code
