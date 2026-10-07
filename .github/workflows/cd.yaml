@@ -47,7 +47,7 @@ jobs:
     - name: terraform apply
       working-directory: codebase/rdicidr-0.1.0/terraform
       run: |
-        BRANCH="${GITHUB_REF#refs/heads/}"
+        BRANCH="${{ github.ref_name }}"
         if [ "$BRANCH" = "devel" ]; then
            ENVIRONMENT="devel"
         elif [ "$BRANCH" = "stage" ]; then
